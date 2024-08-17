@@ -25,7 +25,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/endpoints.h>
 #include <zmk/keymap.h>
 #include <zmk/wpm.h>
-LV_IMG_DECLARE(arasaka_master);
+
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
 struct output_status_state {
@@ -123,10 +123,48 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
 }
 
 static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
-     lv_obj_t *art = lv_img_create(widget->obj);
-    bool random = sys_rand32_get() & 1;
-    lv_img_set_src(art, &arasaka_master);
-    lv_obj_align(art, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_obj_t *canvas = lv_obj_get_child(widget, 1);
+
+    lv_draw_rect_dsc_t rect_black_dsc;
+    init_rect_dsc(&rect_black_dsc, LVGL_BACKGROUND);
+    lv_draw_rect_dsc_t rect_white_dsc;
+    init_rect_dsc(&rect_white_dsc, LVGL_FOREGROUND);
+    lv_draw_arc_dsc_t arc_dsc;
+    init_arc_dsc(&arc_dsc, LVGL_FOREGROUND, 2);
+    lv_draw_arc_dsc_t arc_dsc_filled;
+    init_arc_dsc(&arc_dsc_filled, LVGL_FOREGROUND, 9);
+    lv_draw_label_dsc_t label_dsc;
+    init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_18, LV_TEXT_ALIGN_CENTER);
+    lv_draw_label_dsc_t label_dsc_black;
+    init_label_dsc(&label_dsc_black, LVGL_BACKGROUND, &lv_font_montserrat_18, LV_TEXT_ALIGN_CENTER);
+
+    // Fill background
+    lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
+
+    // Draw circles
+    int circle_offsets[5][2] = {
+        {13, 13}, {55, 13}, {34, 34}, {13, 55}, {55, 55},
+    };
+
+    for (int i = 0; i < 5; i++) {
+        bool selected = i == state->active_profile_index;
+
+        lv_canvas_draw_arc(canvas, circle_offsets[i][0], circle_offsets[i][1], 13, 0, 360,
+                           &arc_dsc);
+
+        if (selected) {
+            lv_canvas_draw_arc(canvas, circle_offsets[i][0], circle_offsets[i][1], 9, 0, 359,
+                               &arc_dsc_filled);
+        }
+
+        char label[2];
+        snprintf(label, sizeof(label), "%d", i + 1);
+        lv_canvas_draw_text(canvas, circle_offsets[i][0] - 8, circle_offsets[i][1] - 10, 16,
+                            (selected ? &label_dsc_black : &label_dsc), label);
+    }
+
+    // Rotate canvas
+    rotate_canvas(canvas, cbuf);
 }
 
 static void draw_bottom(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
