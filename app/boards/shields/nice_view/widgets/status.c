@@ -25,7 +25,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/endpoints.h>
 #include <zmk/keymap.h>
 #include <zmk/wpm.h>
-LV_IMG_DECLARE(arasaka_master);
+
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
 struct output_status_state {
@@ -86,41 +86,41 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
 
     lv_canvas_draw_text(canvas, 0, 0, CANVAS_SIZE, &label_dsc, output_text);
 
-        // Draw WPM
-        lv_canvas_draw_rect(canvas, 0, 21, 68, 42, &rect_white_dsc);
-        lv_canvas_draw_rect(canvas, 1, 22, 66, 40, &rect_black_dsc);
-    
-        char wpm_text[6] = {};
-        snprintf(wpm_text, sizeof(wpm_text), "%d", state->wpm[9]);
-        lv_canvas_draw_text(canvas, 42, 52, 24, &label_dsc_wpm, wpm_text);
-    
-        int max = 0;
-        int min = 256;
-    
-        for (int i = 0; i < 10; i++) {
-            if (state->wpm[i] > max) {
-                max = state->wpm[i];
-            }
-            if (state->wpm[i] < min) {
-                min = state->wpm[i];
-            }
+    // Draw WPM
+    lv_canvas_draw_rect(canvas, 0, 21, 68, 42, &rect_white_dsc);
+    lv_canvas_draw_rect(canvas, 1, 22, 66, 40, &rect_black_dsc);
+
+    char wpm_text[6] = {};
+    snprintf(wpm_text, sizeof(wpm_text), "%d", state->wpm[9]);
+    lv_canvas_draw_text(canvas, 42, 52, 24, &label_dsc_wpm, wpm_text);
+
+    int max = 0;
+    int min = 256;
+
+    for (int i = 0; i < 10; i++) {
+        if (state->wpm[i] > max) {
+            max = state->wpm[i];
         }
-    
-        int range = max - min;
-        if (range == 0) {
-            range = 1;
+        if (state->wpm[i] < min) {
+            min = state->wpm[i];
         }
-    
-        lv_point_t points[10];
-        for (int i = 0; i < 10; i++) {
-            points[i].x = 2 + i * 7;
-            points[i].y = 60 - (state->wpm[i] - min) * 36 / range;
-        }
-        lv_canvas_draw_line(canvas, points, 10, &line_dsc);
-    
-        // Rotate canvas
-        rotate_canvas(canvas, cbuf);
     }
+
+    int range = max - min;
+    if (range == 0) {
+        range = 1;
+    }
+
+    lv_point_t points[10];
+    for (int i = 0; i < 10; i++) {
+        points[i].x = 2 + i * 7;
+        points[i].y = 60 - (state->wpm[i] - min) * 36 / range;
+    }
+    lv_canvas_draw_line(canvas, points, 10, &line_dsc);
+
+    // Rotate canvas
+    rotate_canvas(canvas, cbuf);
+}
 
 static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
     lv_obj_t *canvas = lv_obj_get_child(widget, 1);
@@ -314,18 +314,20 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_obj_t *top = lv_canvas_create(widget->obj);
     lv_obj_align(top, LV_ALIGN_TOP_RIGHT, 0, 0);
     lv_canvas_set_buffer(top, widget->cbuf, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
-
-    lv_obj_t *art = lv_img_create(widget->obj);
-    bool random = sys_rand32_get() & 1;
-    lv_img_set_src(art, &arasaka_master);
-    lv_obj_align(art, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_obj_t *middle = lv_canvas_create(widget->obj);
+    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 24, 0);
+    lv_canvas_set_buffer(middle, widget->cbuf2, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
+    lv_obj_t *bottom = lv_canvas_create(widget->obj);
+    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, -44, 0);
+    lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
-    widget_peripheral_status_init();
+    widget_output_status_init();
+    widget_layer_status_init();
+    widget_wpm_status_init();
 
     return 0;
 }
 
 lv_obj_t *zmk_widget_status_obj(struct zmk_widget_status *widget) { return widget->obj; }
-
